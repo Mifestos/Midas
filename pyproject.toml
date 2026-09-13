@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "Midas"
+version = "0.1.0"
+description = "Прогнозирование акций с помощью Prophet и оптимизация Марковица"
+authors = ["Mifestos"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
