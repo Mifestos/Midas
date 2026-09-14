@@ -11,3 +11,4 @@ START_DATE = (datetime.today() - timedelta(days=3*365)).strftime('%Y-%m-%d')
 # Параметры оптимизации Марковица
 RISK_AVERSION = 3
 MINIMUM_ALLOCATION = 0.05
+MAXIMUM_ALLOCATION = 0.35
