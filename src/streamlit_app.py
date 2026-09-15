@@ -1,3 +1,4 @@
+# src/streamlit_app.py
 import os
 import sys
 import streamlit as st
@@ -10,7 +11,7 @@ if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
 from src.settings import PORTFOLIO_TICKERS, MARKET_RETURN, RISK_FREE_RATE, MARKET_VOLATILITY
-from src.data_loader import download_portfolio_data
+from src.settings import load_local_data
 from src.forecasting import forecast_prices, calculate_expected_returns
 from src.portfolio_optimisation import calculate_historical_covariance, optimize_portfolio
 
@@ -26,7 +27,11 @@ risk_mode = st.sidebar.selectbox("Расчет неприятия риска (γ
 if risk_mode == "Ручной ползунок":
     risk_aversion = st.sidebar.slider("Неприятие риска (Risk Aversion)", 1.0, 5.0, 3.0, 0.5)
 else:
+    # Защита от отрицательного или нулевого значения из-за аномалий рынка (например, RISK_FREE_RATE > MARKET_RETURN)
     gamma_capm = (MARKET_RETURN - RISK_FREE_RATE) / (MARKET_VOLATILITY ** 2)
+    if gamma_capm <= 0:
+        gamma_capm = 3.0  # Безопасный дефолт, если безрисковая ставка выше доходности рынка
+    
     st.sidebar.metric("Рассчитанный γ (CAPM)", f"{gamma_capm:.2f}")
     risk_aversion = gamma_capm
 
@@ -36,7 +41,7 @@ allocation_strategy = st.sidebar.selectbox(
     ["Без лимитов (0% - 100%)", "Равномерный лимит (1/N)", "Предельный вклад в риск"]
 )
 
-historical_prices = download_portfolio_data()
+historical_prices = load_local_data()
 cov_matrix = calculate_historical_covariance(historical_prices)
 num_assets = len(PORTFOLIO_TICKERS)
 
@@ -77,7 +82,14 @@ if run_backtest:
     expected_returns = calculate_expected_returns(train_data, forecasted_prices)
     cov_matrix_train = calculate_historical_covariance(train_data)
     
-    optimized_weights = optimize_portfolio(expected_returns, cov_matrix_train, risk_aversion, min_bounds, max_bounds)
+    # Исправлено: Явное приведение np.array к спискам .tolist() для корректной распаковки в цикле функции
+    optimized_weights = optimize_portfolio(
+        expected_returns, 
+        cov_matrix_train, 
+        risk_aversion, 
+        min_bounds.tolist(), 
+        max_bounds.tolist()
+    )
     
     real_asset_returns = (test_data.iloc[-1] / train_data.iloc[-1]) - 1
     midas_return = np.sum(real_asset_returns * optimized_weights)
@@ -102,7 +114,15 @@ else:
     st.subheader("Режим работы: Реальное прогнозирование")
     forecasted_prices = forecast_prices(historical_prices, days_to_forecast=days_to_forecast)
     expected_returns = calculate_expected_returns(historical_prices, forecasted_prices)
-    optimized_weights = optimize_portfolio(expected_returns, cov_matrix, risk_aversion, min_bounds, max_bounds)
+    
+    # Исправлено: Явное приведение np.array к спискам .tolist() для корректной распаковки в цикле функции
+    optimized_weights = optimize_portfolio(
+        expected_returns, 
+        cov_matrix, 
+        risk_aversion, 
+        min_bounds.tolist(), 
+        max_bounds.tolist()
+    )
     
     report_data = []
     for ticker in PORTFOLIO_TICKERS:
@@ -126,6 +146,6 @@ fig_pie.update_layout(margin=dict(t=30, b=30, l=30, r=30))
 st.plotly_chart(fig_pie, use_container_width=True)
 
 st.subheader("Визуальный анализ трендов и прогнозов")
-forecast_img_path = os.path.join(BASE_DIR, "src", "plots", "portfolio_forecasts.png")
+forecast_img_path = o   s.path.join(BASE_DIR, "src", "plots", "portfolio_forecasts.png")
 if os.path.exists(forecast_img_path):
     st.image(forecast_img_path, use_container_width=True)

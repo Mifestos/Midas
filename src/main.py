@@ -9,8 +9,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-from src.settings import PORTFOLIO_TICKERS, RUN_BACKTEST
-from src.data_loader import download_portfolio_data
+from src.settings import PORTFOLIO_TICKERS, RUN_BACKTEST, RISK_AVERSION
+from src.settings import load_local_data
 from src.forecasting import forecast_prices, calculate_expected_returns
 from src.portfolio_optimisation import calculate_historical_covariance, optimize_portfolio
 
@@ -18,12 +18,13 @@ def run_pipeline():
     print(f"ЗАПУСК ИНВЕСТИЦИОННОЙ СИСТЕМЫ MIDAS | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     
     try:
-        full_data = download_portfolio_data()
+        full_data = load_local_data()
     except Exception as e:
         print(f"Ошибка на этапе загрузки данных: {e}")
         return
 
     days_to_forecast = 30
+    num_assets = len(PORTFOLIO_TICKERS)
 
     if RUN_BACKTEST:
         print("РЕЖИМ РАБОТЫ: ИСТОРИЧЕСКИЙ БЭКТЕСТИНГ (СРАВНЕНИЕ С РЕАЛЬНЫМ БУДУЩИМ)")
@@ -38,7 +39,15 @@ def run_pipeline():
         forecasted_prices = forecast_prices(train_data, days_to_forecast=days_to_forecast)
         expected_returns = calculate_expected_returns(train_data, forecasted_prices)
         cov_matrix = calculate_historical_covariance(train_data)
-        optimized_weights = optimize_portfolio(expected_returns, cov_matrix)
+        
+        # Исправлено: Передаем списки ограничений под каждый тикер отдельно
+        optimized_weights = optimize_portfolio(
+            expected_returns, 
+            cov_matrix, 
+            risk_aversion=RISK_AVERSION, 
+            min_bounds=[0.0] * num_assets, 
+            max_bounds=[1.0] * num_assets
+        )
         
         real_asset_returns = (test_data.iloc[-1] / train_data.iloc[-1]) - 1
         midas_portfolio_return = np.sum(real_asset_returns * optimized_weights)
@@ -79,7 +88,15 @@ def run_pipeline():
         forecasted_prices = forecast_prices(full_data, days_to_forecast=days_to_forecast)
         expected_returns = calculate_expected_returns(full_data, forecasted_prices)
         cov_matrix = calculate_historical_covariance(full_data)
-        optimized_weights = optimize_portfolio(expected_returns, cov_matrix)
+        
+        # Исправлено: Передаем списки ограничений под каждый тикер отдельно
+        optimized_weights = optimize_portfolio(
+            expected_returns, 
+            cov_matrix, 
+            risk_aversion=RISK_AVERSION, 
+            min_bounds=[0.0] * num_assets, 
+            max_bounds=[1.0] * num_assets
+        )
         
         print("\nФИНАЛЬНЫЙ СГЕНЕРИРОВАННЫЙ ОТЧЕТ ПОРТФЕЛЯ MIDAS")
         print(f"Активные тикеры в анализе: {PORTFOLIO_TICKERS}")

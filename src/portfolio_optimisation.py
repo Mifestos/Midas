@@ -9,7 +9,7 @@ if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
 from src.settings import PORTFOLIO_TICKERS
-from src.data_loader import download_portfolio_data
+from src.settings import load_local_data
 from src.forecasting import forecast_prices, calculate_expected_returns
 
 def calculate_historical_covariance(historical_data: pd.DataFrame) -> pd.DataFrame:
