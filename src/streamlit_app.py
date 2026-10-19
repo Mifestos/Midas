@@ -146,6 +146,6 @@ fig_pie.update_layout(margin=dict(t=30, b=30, l=30, r=30))
 st.plotly_chart(fig_pie, use_container_width=True)
 
 st.subheader("Визуальный анализ трендов и прогнозов")
-forecast_img_path = o   s.path.join(BASE_DIR, "src", "plots", "portfolio_forecasts.png")
+forecast_img_path = os.path.join(BASE_DIR, "src", "plots", "portfolio_forecasts.png")
 if os.path.exists(forecast_img_path):
     st.image(forecast_img_path, use_container_width=True)
